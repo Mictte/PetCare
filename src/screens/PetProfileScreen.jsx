@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   View,
@@ -40,19 +41,19 @@ function DetailField({ icon, label, value }) {
   );
 }
 
-export default function PetProfileScreen({ navigation }) {
+export default function PetProfileScreen({ onSignOut }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => navigation.goBack()}
+            onPress={onSignOut}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel="Regresar"
+            accessibilityLabel="Cerrar sesión"
           >
             <Ionicons
-              name="chevron-back"
+              name="log-out-outline"
               size={24}
               color={colors.text}
             />
@@ -154,7 +155,7 @@ export default function PetProfileScreen({ navigation }) {
         </View>
 
         <Text style={styles.demoText}>
-          Datos hardcodeados.
+          Datos de mascota de ejemplo.
         </Text>
       </ScrollView>
     </SafeAreaView>

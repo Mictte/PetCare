@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   View,
@@ -7,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 
@@ -16,8 +18,14 @@ import { Controller, useForm } from 'react-hook-form';
 
 import { colors } from '../styles/colors';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({
+  navigation,
+  route,
+  onLogin,
+}) {
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const {
     control,
@@ -30,9 +38,21 @@ export default function LoginScreen({ navigation }) {
     },
   });
 
-  const onSubmit = () => {
-    navigation.navigate('PetProfile');
-  };
+  async function onSubmit(data) {
+    setServerError('');
+    setLoading(true);
+
+    try {
+      await onLogin({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+      });
+    } catch (error) {
+      setServerError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,13 +74,23 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.brandText}>PetCare</Text>
             </View>
 
-            <Text style={styles.title}>Inicio de sesión</Text>
+            <Text style={styles.title}>
+              Inicio de sesión
+            </Text>
 
             <Text style={styles.subtitle}>
               El cuidado de tus mascotas, en un solo lugar.
             </Text>
 
-            <Text style={styles.label}>Correo electrónico</Text>
+            {route?.params?.accountCreated && (
+              <Text style={styles.successText}>
+                Cuenta creada correctamente. Ya puedes iniciar sesión.
+              </Text>
+            )}
+
+            <Text style={styles.label}>
+              Correo electrónico
+            </Text>
 
             <Controller
               control={control}
@@ -107,7 +137,9 @@ export default function LoginScreen({ navigation }) {
               </Text>
             )}
 
-            <Text style={styles.label}>Contraseña</Text>
+            <Text style={styles.label}>
+              Contraseña
+            </Text>
 
             <Controller
               control={control}
@@ -134,6 +166,7 @@ export default function LoginScreen({ navigation }) {
                     placeholderTextColor={colors.secondaryText}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
+                    autoComplete="password"
                     onChangeText={onChange}
                     onBlur={onBlur}
                     value={value}
@@ -149,7 +182,11 @@ export default function LoginScreen({ navigation }) {
                     }
                   >
                     <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      name={
+                        showPassword
+                          ? 'eye-off-outline'
+                          : 'eye-outline'
+                      }
                       size={22}
                       color={colors.primary}
                     />
@@ -164,19 +201,40 @@ export default function LoginScreen({ navigation }) {
               </Text>
             )}
 
+            {!!serverError && (
+              <Text style={styles.serverError}>
+                {serverError}
+              </Text>
+            )}
+
             <Pressable
-              style={styles.loginButton}
+              style={[
+                styles.loginButton,
+                loading && styles.disabledButton,
+              ]}
               onPress={handleSubmit(onSubmit)}
+              disabled={loading}
               accessibilityRole="button"
             >
-              <Text style={styles.buttonText}>
-                Iniciar sesión
-              </Text>
+              {loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>
+                  Iniciar sesión
+                </Text>
+              )}
             </Pressable>
 
-            <Text style={styles.demoText}>
-              Versión de prueba
-            </Text>
+            <Pressable
+              style={styles.signupButton}
+              onPress={() => navigation.navigate('SignUp')}
+              disabled={loading}
+              accessibilityRole="button"
+            >
+              <Text style={styles.signupText}>
+                ¿No tienes cuenta? Regístrate
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -224,7 +282,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.secondaryText,
     lineHeight: 21,
-    marginBottom: 32,
+    marginBottom: 28,
   },
   label: {
     fontSize: 14,
@@ -258,6 +316,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
   },
+  serverError: {
+    color: colors.error,
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  successText: {
+    color: colors.primaryDark,
+    backgroundColor: colors.lightTeal,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 13,
+    marginBottom: 8,
+  },
   loginButton: {
     marginTop: 30,
     backgroundColor: colors.primary,
@@ -266,15 +338,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  disabledButton: {
+    opacity: 0.7,
+  },
   buttonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
-  demoText: {
-    fontSize: 12,
-    color: colors.secondaryText,
-    textAlign: 'center',
-    marginTop: 16,
+  signupButton: {
+    alignItems: 'center',
+    padding: 16,
+    marginTop: 8,
+  },
+  signupText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

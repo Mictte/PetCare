@@ -1,32 +1,213 @@
-import React from 'react';
+
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import LoginScreen from './src/screens/LoginScreen';
+import SignUpScreen from './src/screens/SignUpScreen';
 import PetProfileScreen from './src/screens/PetProfileScreen';
+
+import {
+  loginUser,
+  registerUser,
+  getProfile,
+} from './src/services/petApi';
+
+import {
+  saveSession,
+  readSession,
+  clearSession,
+} from './src/services/session';
+
+import { colors } from './src/styles/colors';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  const [token, setToken] = useState(null);
+  const [restoring, setRestoring] = useState(true);
+  const [restoreError, setRestoreError] = useState('');
+
+  const restoreSession = useCallback(async () => {
+    setRestoring(true);
+    setRestoreError('');
+
+    try {
+      const savedToken = await readSession();
+
+      if (!savedToken) {
+        setToken(null);
+        return;
+      }
+
+      await getProfile(savedToken);
+      setToken(savedToken);
+    } catch (error) {
+      if (error.status === 401) {
+        try {
+          await clearSession();
+          setToken(null);
+        } catch {
+          setRestoreError('No se pudo borrar la sesión anterior.');
+        }
+      } else {
+        setRestoreError(
+          'No se pudo verificar la sesión. Revisa tu conexión.'
+        );
+      }
+    } finally {
+      setRestoring(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
+
+  async function handleLogin({ email, password }) {
+    const newToken = await loginUser(email, password);
+
+    await saveSession(newToken);
+    setToken(newToken);
+  }
+
+  async function handleSignUp(userData) {
+    return await registerUser(userData);
+  }
+
+  async function handleLogout() {
+    try {
+      await clearSession();
+      setToken(null);
+      setRestoreError('');
+    } catch {
+      setRestoreError('No se pudo cerrar la sesión.');
+    }
+  }
+
+  if (restoring) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.center}>
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+          />
+          <Text style={styles.message}>
+            Verificando sesión...
+          </Text>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  if (restoreError) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.center}>
+          <Text style={styles.message}>
+            {restoreError}
+          </Text>
+
+          <Pressable
+            style={styles.button}
+            onPress={restoreSession}
+          >
+            <Text style={styles.buttonText}>
+              Reintentar
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={handleLogout}>
+            <Text style={styles.linkText}>
+              Cerrar sesión
+            </Text>
+          </Pressable>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Login"
           screenOptions={{ headerShown: false }}
         >
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-          />
+          {token ? (
+            <Stack.Screen name="PetProfile">
+              {(props) => (
+                <PetProfileScreen
+                  {...props}
+                  onSignOut={handleLogout}
+                />
+              )}
+            </Stack.Screen>
+          ) : (
+            <>
+              <Stack.Screen name="Login">
+                {(props) => (
+                  <LoginScreen
+                    {...props}
+                    onLogin={handleLogin}
+                  />
+                )}
+              </Stack.Screen>
 
-          <Stack.Screen
-            name="PetProfile"
-            component={PetProfileScreen}
-          />
+              <Stack.Screen name="SignUp">
+                {(props) => (
+                  <SignUpScreen
+                    {...props}
+                    onSignUp={handleSignUp}
+                  />
+                )}
+              </Stack.Screen>
+            </>
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: colors.background,
+  },
+  message: {
+    fontSize: 15,
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginBottom: 18,
+  },
+  buttonText: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  linkText: {
+    color: colors.primary,
+    fontWeight: '600',
+    padding: 8,
+  },
+});
