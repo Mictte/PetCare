@@ -3,7 +3,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 async function request(endpoint, options = {}) {
   if (!BASE_URL) {
-    throw new Error('No se ha configurado la URL de la API');
+    throw new Error('No se ha configurado la URL de PetCare_API');
   }
 
   let response;
@@ -20,7 +20,7 @@ async function request(endpoint, options = {}) {
       }
     );
   } catch {
-    throw new Error('No se pudo conectar con el servidor');
+    throw new Error('No se pudo conectar con PetCare_API');
   }
 
   const data = await response.json().catch(() => null);
@@ -32,15 +32,17 @@ async function request(endpoint, options = {}) {
       message = 'Credenciales incorrectas o sesión expirada';
     } else if (response.status === 404) {
       message = 'No se encontró el recurso solicitado';
-    } else if (data?.detail) {
+    } else if (typeof data?.detail === 'string') {
       message = data.detail;
     } else if (data && typeof data === 'object') {
-      const firstError = Object.values(data)[0];
+      const field = Object.keys(data)[0];
+      const firstError = data[field];
+      const description = Array.isArray(firstError)
+        ? firstError[0]
+        : firstError;
 
-      if (Array.isArray(firstError)) {
-        message = String(firstError[0]);
-      } else if (typeof firstError === 'string') {
-        message = firstError;
+      if (typeof description === 'string') {
+        message = `${field}: ${description}`;
       }
     }
 
@@ -52,37 +54,59 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
-// Crear una cuenta
+// Registrar usuario en PetCare_API
 export function registerUser(userData) {
-  return request('/api/auth/signup/', {
+  return request('/api/users/register/', {
     method: 'POST',
     body: JSON.stringify(userData),
   });
 }
 
-// Iniciar sesion
-export async function loginUser(email, password) {
-  const data = await request('/api/auth/login/', {
+// Obtener los dos tokens JWT
+export async function loginUser(username, password) {
+  const data = await request('/api/token/', {
     method: 'POST',
     body: JSON.stringify({
-      email,
+      username,
       password,
     }),
   });
 
-  if (typeof data?.token !== 'string' || !data.token) {
-    throw new Error('El servidor no devolvió un token válido');
+  if (
+    typeof data?.access !== 'string' ||
+    typeof data?.refresh !== 'string'
+  ) {
+    throw new Error('El servidor no devolvió los tokens esperados');
   }
 
-  return data.token;
+  return {
+    access: data.access,
+    refresh: data.refresh,
+  };
 }
 
-// Consultar el perfil del usuario autenticado
-export function getProfile(token) {
-  return request('/api/auth/get-profile/', {
+// Renovar el token de acceso
+export function refreshAccessToken(refresh) {
+  return request('/api/token/refresh/', {
+    method: 'POST',
+    body: JSON.stringify({ refresh }),
+  });
+}
+
+// Verificar un token JWT
+export function verifyToken(token) {
+  return request('/api/token/verify/', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+// Obtener las mascotas del propietario autenticado
+export function getPets(accessToken) {
+  return request('/api/pets/', {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 }

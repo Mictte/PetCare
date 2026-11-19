@@ -31,9 +31,7 @@ function FormField({
 }) {
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.label}>
-        {label}
-      </Text>
+      <Text style={styles.label}>{label}</Text>
 
       <Controller
         control={control}
@@ -91,6 +89,7 @@ export default function SignUpScreen({
     formState: { errors },
   } = useForm({
     defaultValues: {
+      username: '',
       first_name: '',
       last_name: '',
       email: '',
@@ -106,6 +105,7 @@ export default function SignUpScreen({
 
     try {
       await onSignUp({
+        username: data.username.trim(),
         first_name: data.first_name.trim(),
         last_name: data.last_name.trim(),
         email: data.email.trim().toLowerCase(),
@@ -154,6 +154,7 @@ export default function SignUpScreen({
                   size={24}
                   color={colors.primary}
                 />
+
                 <Text style={styles.brandText}>
                   PetCare
                 </Text>
@@ -168,6 +169,22 @@ export default function SignUpScreen({
               Regístrate para administrar la información
               de tus mascotas.
             </Text>
+
+            <FormField
+              control={control}
+              errors={errors}
+              name="username"
+              label="Usuario"
+              icon="person-circle-outline"
+              autoCapitalize="none"
+              rules={{
+                required: 'El usuario es obligatorio',
+                pattern: {
+                  value: /^[\w.@+-]+$/,
+                  message: 'El usuario contiene caracteres no permitidos',
+                },
+              }}
+            />
 
             <FormField
               control={control}
@@ -238,7 +255,7 @@ export default function SignUpScreen({
                 required: 'La contraseña es obligatoria',
                 minLength: {
                   value: 8,
-                  message: 'La contraseña debe tener al menos 8 caracteres',
+                  message: 'Mínimo 8 caracteres',
                 },
               }}
             />

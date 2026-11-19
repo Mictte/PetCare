@@ -33,7 +33,7 @@ export default function LoginScreen({
     formState: { errors },
   } = useForm({
     defaultValues: {
-      email: '',
+      username: '',
       password: '',
     },
   });
@@ -44,7 +44,7 @@ export default function LoginScreen({
 
     try {
       await onLogin({
-        email: data.email.trim().toLowerCase(),
+        username: data.username.trim(),
         password: data.password,
       });
     } catch (error) {
@@ -88,41 +88,34 @@ export default function LoginScreen({
               </Text>
             )}
 
-            <Text style={styles.label}>
-              Correo electrónico
-            </Text>
+            <Text style={styles.label}>Usuario</Text>
 
             <Controller
               control={control}
-              name="email"
+              name="username"
               rules={{
-                required: 'El correo es obligatorio',
-                pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: 'Ingresa un correo válido',
-                },
+                required: 'El usuario es obligatorio',
               }}
               render={({ field: { onChange, onBlur, value } }) => (
                 <View
                   style={[
                     styles.inputContainer,
-                    errors.email && styles.inputError,
+                    errors.username && styles.inputError,
                   ]}
                 >
                   <Ionicons
-                    name="mail-outline"
+                    name="person-outline"
                     size={20}
                     color={colors.secondaryText}
                   />
 
                   <TextInput
                     style={styles.input}
-                    placeholder="nombre@ejemplo.com"
+                    placeholder="Nombre de usuario"
                     placeholderTextColor={colors.secondaryText}
-                    keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    autoComplete="email"
+                    autoComplete="username"
                     onChangeText={onChange}
                     onBlur={onBlur}
                     value={value}
@@ -131,15 +124,13 @@ export default function LoginScreen({
               )}
             />
 
-            {errors.email && (
+            {errors.username && (
               <Text style={styles.errorText}>
-                {errors.email.message}
+                {errors.username.message}
               </Text>
             )}
 
-            <Text style={styles.label}>
-              Contraseña
-            </Text>
+            <Text style={styles.label}>Contraseña</Text>
 
             <Controller
               control={control}

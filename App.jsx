@@ -19,7 +19,7 @@ import PetProfileScreen from './src/screens/PetProfileScreen';
 import {
   loginUser,
   registerUser,
-  getProfile,
+  refreshAccessToken,
 } from './src/services/petApi';
 
 import {
@@ -33,7 +33,7 @@ import { colors } from './src/styles/colors';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  const [token, setToken] = useState(null);
+  const [session, setSession] = useState(null);
   const [restoring, setRestoring] = useState(true);
   const [restoreError, setRestoreError] = useState('');
 
@@ -42,26 +42,40 @@ export default function App() {
     setRestoreError('');
 
     try {
-      const savedToken = await readSession();
+      const savedSession = await readSession();
 
-      if (!savedToken) {
-        setToken(null);
+      if (!savedSession) {
+        setSession(null);
         return;
       }
 
-      await getProfile(savedToken);
-      setToken(savedToken);
+      // Solicitar un nuevo access token
+      const renewed = await refreshAccessToken(
+        savedSession.refresh
+      );
+
+      if (typeof renewed?.access !== 'string') {
+        throw new Error('No se pudo renovar la sesión');
+      }
+
+      const updatedSession = {
+        access: renewed.access,
+        refresh: renewed.refresh || savedSession.refresh,
+      };
+
+      await saveSession(updatedSession);
+      setSession(updatedSession);
     } catch (error) {
-      if (error.status === 401) {
+      if (error.status === 401 || error.status === 400) {
         try {
           await clearSession();
-          setToken(null);
+          setSession(null);
         } catch {
           setRestoreError('No se pudo borrar la sesión anterior.');
         }
       } else {
         setRestoreError(
-          'No se pudo verificar la sesión. Revisa tu conexión.'
+          'No se pudo restaurar la sesión. Revisa tu conexión.'
         );
       }
     } finally {
@@ -73,21 +87,22 @@ export default function App() {
     restoreSession();
   }, [restoreSession]);
 
-  async function handleLogin({ email, password }) {
-    const newToken = await loginUser(email, password);
+  async function handleLogin({ username, password }) {
+    const tokens = await loginUser(username, password);
 
-    await saveSession(newToken);
-    setToken(newToken);
+    await saveSession(tokens);
+    setSession(tokens);
+    setRestoreError('');
   }
 
   async function handleSignUp(userData) {
-    return await registerUser(userData);
+    return registerUser(userData);
   }
 
   async function handleLogout() {
     try {
       await clearSession();
-      setToken(null);
+      setSession(null);
       setRestoreError('');
     } catch {
       setRestoreError('No se pudo cerrar la sesión.');
@@ -143,7 +158,7 @@ export default function App() {
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
         >
-          {token ? (
+          {session ? (
             <Stack.Screen name="PetProfile">
               {(props) => (
                 <PetProfileScreen
