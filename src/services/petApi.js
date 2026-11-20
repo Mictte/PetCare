@@ -54,7 +54,7 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
-// Registrar usuario en PetCare_API
+// Registrar usuario
 export function registerUser(userData) {
   return request('/api/users/register/', {
     method: 'POST',
@@ -62,7 +62,7 @@ export function registerUser(userData) {
   });
 }
 
-// Obtener los dos tokens JWT
+// Iniciar sesión
 export async function loginUser(username, password) {
   const data = await request('/api/token/', {
     method: 'POST',
@@ -85,7 +85,7 @@ export async function loginUser(username, password) {
   };
 }
 
-// Renovar el token de acceso
+// Renovar token JWT
 export function refreshAccessToken(refresh) {
   return request('/api/token/refresh/', {
     method: 'POST',
@@ -93,7 +93,7 @@ export function refreshAccessToken(refresh) {
   });
 }
 
-// Verificar un token JWT
+// Verificar token JWT
 export function verifyToken(token) {
   return request('/api/token/verify/', {
     method: 'POST',
@@ -101,12 +101,23 @@ export function verifyToken(token) {
   });
 }
 
-// Obtener las mascotas del propietario autenticado
+// Consultar mascotas
 export function getPets(accessToken) {
   return request('/api/pets/', {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
+  });
+}
+
+// Registrar una mascota
+export function createPet(accessToken, petData) {
+  return request('/api/pets/', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(petData),
   });
 }

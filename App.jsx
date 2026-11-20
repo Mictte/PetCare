@@ -14,12 +14,15 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
-import PetProfileScreen from './src/screens/PetProfileScreen';
+import PetListScreen from './src/screens/PetListScreen';
+import PetFormScreen from './src/screens/PetFormScreen';
 
 import {
   loginUser,
   registerUser,
   refreshAccessToken,
+  getPets,
+  createPet,
 } from './src/services/petApi';
 
 import {
@@ -49,7 +52,6 @@ export default function App() {
         return;
       }
 
-      // Solicitar un nuevo access token
       const renewed = await refreshAccessToken(
         savedSession.refresh
       );
@@ -87,6 +89,7 @@ export default function App() {
     restoreSession();
   }, [restoreSession]);
 
+  // Iniciar sesión
   async function handleLogin({ username, password }) {
     const tokens = await loginUser(username, password);
 
@@ -95,10 +98,12 @@ export default function App() {
     setRestoreError('');
   }
 
+  // Registrar usuario
   async function handleSignUp(userData) {
     return registerUser(userData);
   }
 
+  // Cerrar sesión
   async function handleLogout() {
     try {
       await clearSession();
@@ -109,6 +114,68 @@ export default function App() {
     }
   }
 
+  // Ejecutar peticiones protegidas y renovar access si expira
+  const runAuthorized = useCallback(async (action) => {
+    if (!session) {
+      throw new Error('Debes iniciar sesión');
+    }
+
+    try {
+      return await action(session.access);
+    } catch (error) {
+      if (error.status !== 401) {
+        throw error;
+      }
+
+      let renewed;
+
+      try {
+        renewed = await refreshAccessToken(
+          session.refresh
+        );
+      } catch (refreshError) {
+        if (
+          refreshError.status === 401 ||
+          refreshError.status === 400
+        ) {
+          await clearSession();
+          setSession(null);
+
+          throw new Error(
+            'Tu sesión expiró. Inicia sesión nuevamente.'
+          );
+        }
+
+        throw refreshError;
+      }
+
+      if (typeof renewed?.access !== 'string') {
+        throw new Error('No se pudo renovar la sesión');
+      }
+
+      const updatedSession = {
+        access: renewed.access,
+        refresh: renewed.refresh || session.refresh,
+      };
+
+      await saveSession(updatedSession);
+      setSession(updatedSession);
+
+      // Reintentar la petición con el nuevo access
+      return action(updatedSession.access);
+    }
+  }, [session]);
+
+  const handleGetPets = useCallback(() => {
+    return runAuthorized((access) => getPets(access));
+  }, [runAuthorized]);
+
+  const handleCreatePet = useCallback((petData) => {
+    return runAuthorized(
+      (access) => createPet(access, petData)
+    );
+  }, [runAuthorized]);
+
   if (restoring) {
     return (
       <SafeAreaProvider>
@@ -117,6 +184,7 @@ export default function App() {
             size="large"
             color={colors.primary}
           />
+
           <Text style={styles.message}>
             Verificando sesión...
           </Text>
@@ -159,14 +227,26 @@ export default function App() {
           screenOptions={{ headerShown: false }}
         >
           {session ? (
-            <Stack.Screen name="PetProfile">
-              {(props) => (
-                <PetProfileScreen
-                  {...props}
-                  onSignOut={handleLogout}
-                />
-              )}
-            </Stack.Screen>
+            <>
+              <Stack.Screen name="PetList">
+                {(props) => (
+                  <PetListScreen
+                    {...props}
+                    onGetPets={handleGetPets}
+                    onSignOut={handleLogout}
+                  />
+                )}
+              </Stack.Screen>
+
+              <Stack.Screen name="PetForm">
+                {(props) => (
+                  <PetFormScreen
+                    {...props}
+                    onCreatePet={handleCreatePet}
+                  />
+                )}
+              </Stack.Screen>
+            </>
           ) : (
             <>
               <Stack.Screen name="Login">
