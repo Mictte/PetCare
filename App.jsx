@@ -16,6 +16,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import PetListScreen from './src/screens/PetListScreen';
 import PetFormScreen from './src/screens/PetFormScreen';
+import PetProfileScreen from './src/screens/PetProfileScreen';
 
 import {
   loginUser,
@@ -23,6 +24,8 @@ import {
   refreshAccessToken,
   getPets,
   createPet,
+  getPetById,
+  updatePet,
 } from './src/services/petApi';
 
 import {
@@ -161,18 +164,33 @@ export default function App() {
       await saveSession(updatedSession);
       setSession(updatedSession);
 
-      // Reintentar la petición con el nuevo access
       return action(updatedSession.access);
     }
   }, [session]);
 
+  // Listar mascotas
   const handleGetPets = useCallback(() => {
     return runAuthorized((access) => getPets(access));
   }, [runAuthorized]);
 
+  // Registrar mascota
   const handleCreatePet = useCallback((petData) => {
     return runAuthorized(
       (access) => createPet(access, petData)
+    );
+  }, [runAuthorized]);
+
+  // Consultar mascota por UUID
+  const handleGetPet = useCallback((petId) => {
+    return runAuthorized(
+      (access) => getPetById(access, petId)
+    );
+  }, [runAuthorized]);
+
+  // Actualizar mascota
+  const handleUpdatePet = useCallback((petId, petData) => {
+    return runAuthorized(
+      (access) => updatePet(access, petId, petData)
     );
   }, [runAuthorized]);
 
@@ -238,11 +256,22 @@ export default function App() {
                 )}
               </Stack.Screen>
 
+              <Stack.Screen name="PetProfile">
+                {(props) => (
+                  <PetProfileScreen
+                    {...props}
+                    onGetPet={handleGetPet}
+                  />
+                )}
+              </Stack.Screen>
+
               <Stack.Screen name="PetForm">
                 {(props) => (
                   <PetFormScreen
                     {...props}
                     onCreatePet={handleCreatePet}
+                    onGetPet={handleGetPet}
+                    onUpdatePet={handleUpdatePet}
                   />
                 )}
               </Stack.Screen>

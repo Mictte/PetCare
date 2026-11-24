@@ -66,10 +66,7 @@ export function registerUser(userData) {
 export async function loginUser(username, password) {
   const data = await request('/api/token/', {
     method: 'POST',
-    body: JSON.stringify({
-      username,
-      password,
-    }),
+    body: JSON.stringify({ username, password }),
   });
 
   if (
@@ -111,10 +108,31 @@ export function getPets(accessToken) {
   });
 }
 
-// Registrar una mascota
+// Registrar mascota
 export function createPet(accessToken, petData) {
   return request('/api/pets/', {
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(petData),
+  });
+}
+
+// Consultar una mascota por UUID
+export function getPetById(accessToken, petId) {
+  return request(`/api/pets/${petId}/`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+// Editar información de una mascota
+export function updatePet(accessToken, petId, petData) {
+  return request(`/api/pets/${petId}/`, {
+    method: 'PATCH',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },

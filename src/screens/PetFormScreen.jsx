@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -47,6 +47,13 @@ function validateBirthDate(value) {
   }
 
   return true;
+}
+
+function getSpeciesForForm(species) {
+  if (species?.toLowerCase() === 'dog') return 'Perro';
+  if (species?.toLowerCase() === 'cat') return 'Gato';
+
+  return species || '';
 }
 
 function FormField({
@@ -100,14 +107,24 @@ function FormField({
 
 export default function PetFormScreen({
   navigation,
+  route,
   onCreatePet,
+  onGetPet,
+  onUpdatePet,
 }) {
+  const petId = route.params?.petId;
+  const isEditing = Boolean(petId);
+
   const [loading, setLoading] = useState(false);
+  const [loadingPet, setLoadingPet] = useState(isEditing);
+  const [loadError, setLoadError] = useState('');
   const [serverError, setServerError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -125,6 +142,56 @@ export default function PetFormScreen({
       current_medications: '',
     },
   });
+
+  // Cargar los datos existentes cuando se edita
+  useEffect(() => {
+    if (!isEditing) return;
+
+    let active = true;
+
+    setLoadingPet(true);
+    setLoadError('');
+
+    async function loadPet() {
+      try {
+        const pet = await onGetPet(petId);
+
+        if (!active) return;
+
+        reset({
+          name: pet.name || '',
+          species: getSpeciesForForm(pet.species),
+          breed: pet.breed || '',
+          birth_date: pet.birth_date || '',
+          sex: pet.sex || '',
+          weight:
+            pet.weight === null || pet.weight === undefined
+              ? ''
+              : String(pet.weight),
+          color: pet.color || '',
+          distinctive_marks: pet.distinctive_marks || '',
+          observations: pet.observations || '',
+          allergies: pet.allergies || '',
+          medical_conditions: pet.medical_conditions || '',
+          current_medications: pet.current_medications || '',
+        });
+      } catch (error) {
+        if (active) {
+          setLoadError(error.message);
+        }
+      } finally {
+        if (active) {
+          setLoadingPet(false);
+        }
+      }
+    }
+
+    loadPet();
+
+    return () => {
+      active = false;
+    };
+  }, [isEditing, petId, onGetPet, reset, retryCount]);
 
   async function onSubmit(data) {
     setLoading(true);
@@ -158,13 +225,62 @@ export default function PetFormScreen({
     };
 
     try {
-      await onCreatePet(petData);
+      if (isEditing) {
+        await onUpdatePet(petId, petData);
+      } else {
+        await onCreatePet(petData);
+      }
+
       navigation.goBack();
     } catch (error) {
       setServerError(error.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (loadingPet) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+          />
+
+          <Text style={styles.message}>
+            Cargando información...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <Text style={styles.serverError}>
+            {loadError}
+          </Text>
+
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => setRetryCount(value => value + 1)}
+          >
+            <Text style={styles.retryText}>
+              Reintentar
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={() => navigation.goBack()}>
+            <Text style={styles.backLink}>
+              Regresar
+            </Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -182,7 +298,7 @@ export default function PetFormScreen({
               onPress={() => navigation.goBack()}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel="Regresar a Mis mascotas"
+              accessibilityLabel="Regresar"
             >
               <Ionicons
                 name="chevron-back"
@@ -192,7 +308,9 @@ export default function PetFormScreen({
             </Pressable>
 
             <Text style={styles.headerTitle}>
-              Registrar mascota
+              {isEditing
+                ? 'Editar mascota'
+                : 'Registrar mascota'}
             </Text>
 
             <View style={styles.headerSpacer} />
@@ -261,7 +379,9 @@ export default function PetFormScreen({
           />
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Sexo *</Text>
+            <Text style={styles.label}>
+              Sexo *
+            </Text>
 
             <Controller
               control={control}
@@ -419,7 +539,9 @@ export default function PetFormScreen({
                 />
 
                 <Text style={styles.saveButtonText}>
-                  Guardar mascota
+                  {isEditing
+                    ? 'Guardar cambios'
+                    : 'Guardar mascota'}
                 </Text>
               </>
             )}
@@ -434,6 +556,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  message: {
+    color: colors.secondaryText,
+    marginTop: 15,
+  },
+  retryButton: {
+    backgroundColor: colors.lightTeal,
+    paddingHorizontal: 25,
+    paddingVertical: 13,
+    borderRadius: 10,
+    marginTop: 18,
+  },
+  retryText: {
+    color: colors.primaryDark,
+    fontWeight: '600',
+  },
+  backLink: {
+    color: colors.primary,
+    marginTop: 20,
+    fontWeight: '600',
   },
   flex: {
     flex: 1,

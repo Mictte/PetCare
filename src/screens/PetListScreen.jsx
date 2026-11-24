@@ -31,9 +31,14 @@ function getSexName(sex) {
   return 'Sin especificar';
 }
 
-function PetItem({ pet }) {
+function PetItem({ pet, onPress }) {
   return (
-    <View style={styles.petCard}>
+    <Pressable
+      style={styles.petCard}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver información de ${pet.name}`}
+    >
       <View style={styles.petAvatar}>
         <Ionicons
           name="paw"
@@ -57,7 +62,13 @@ function PetItem({ pet }) {
           {pet.weight ? ` · ${pet.weight} kg` : ''}
         </Text>
       </View>
-    </View>
+
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={colors.primary}
+      />
+    </Pressable>
   );
 }
 
@@ -100,7 +111,6 @@ export default function PetListScreen({
     }
   }, [onGetPets]);
 
-  // Actualizar la lista al regresar del registro
   useFocusEffect(
     useCallback(() => {
       loadPets();
@@ -108,7 +118,16 @@ export default function PetListScreen({
   );
 
   function renderPet({ item }) {
-    return <PetItem pet={item} />;
+    return (
+      <PetItem
+        pet={item}
+        onPress={() =>
+          navigation.navigate('PetProfile', {
+            petId: item.id,
+          })
+        }
+      />
+    );
   }
 
   return (
@@ -186,7 +205,8 @@ export default function PetListScreen({
           onRefresh={() => loadPets(true)}
           ListHeaderComponent={
             <Text style={styles.countText}>
-              {pets.length} {pets.length === 1
+              {pets.length}{' '}
+              {pets.length === 1
                 ? 'mascota registrada'
                 : 'mascotas registradas'}
             </Text>
