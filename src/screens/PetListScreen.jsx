@@ -1,8 +1,9 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   Pressable,
   FlatList,
   ActivityIndicator,
@@ -14,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '../styles/colors';
+import { getPetPhotoUrl } from '../services/petPhotoService';
 
 function getSpeciesName(species) {
   const value = species?.toLowerCase();
@@ -31,6 +33,35 @@ function getSexName(sex) {
   return 'Sin especificar';
 }
 
+// Mostrar la fotografía o la huella si no existe
+function PetAvatar({ photo }) {
+  const photoUrl = getPetPhotoUrl(photo);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoUrl]);
+
+  return (
+    <View style={styles.petAvatar}>
+      {photoUrl && !imageFailed ? (
+        <Image
+          source={{ uri: photoUrl }}
+          style={styles.petPhoto}
+          resizeMode="cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <Ionicons
+          name="paw"
+          size={30}
+          color={colors.primary}
+        />
+      )}
+    </View>
+  );
+}
+
 function PetItem({ pet, onPress }) {
   return (
     <Pressable
@@ -39,13 +70,7 @@ function PetItem({ pet, onPress }) {
       accessibilityRole="button"
       accessibilityLabel={`Ver información de ${pet.name}`}
     >
-      <View style={styles.petAvatar}>
-        <Ionicons
-          name="paw"
-          size={30}
-          color={colors.primary}
-        />
-      </View>
+      <PetAvatar photo={pet.photo} />
 
       <View style={styles.petInfo}>
         <Text style={styles.petName}>
@@ -111,6 +136,7 @@ export default function PetListScreen({
     }
   }, [onGetPets]);
 
+  // Actualizar las mascotas al regresar a la lista
   useFocusEffect(
     useCallback(() => {
       loadPets();
@@ -315,6 +341,12 @@ const styles = StyleSheet.create({
     borderRadius: 33,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  petPhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 33,
   },
   petInfo: {
     flex: 1,

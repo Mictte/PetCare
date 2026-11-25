@@ -17,6 +17,8 @@ import SignUpScreen from './src/screens/SignUpScreen';
 import PetListScreen from './src/screens/PetListScreen';
 import PetFormScreen from './src/screens/PetFormScreen';
 import PetProfileScreen from './src/screens/PetProfileScreen';
+import PetCameraScreen from './src/screens/PetCameraScreen';
+import PetPhotoPreviewScreen from './src/screens/PetPhotoPreviewScreen';
 
 import {
   loginUser,
@@ -34,6 +36,7 @@ import {
   clearSession,
 } from './src/services/session';
 
+import { uploadPetPhoto } from './src/services/petPhotoService';
 import { colors } from './src/styles/colors';
 
 const Stack = createNativeStackNavigator();
@@ -117,7 +120,7 @@ export default function App() {
     }
   }
 
-  // Ejecutar peticiones protegidas y renovar access si expira
+  // Renovar el token cuando sea necesario
   const runAuthorized = useCallback(async (action) => {
     if (!session) {
       throw new Error('Debes iniciar sesión');
@@ -168,31 +171,39 @@ export default function App() {
     }
   }, [session]);
 
-  // Listar mascotas
   const handleGetPets = useCallback(() => {
-    return runAuthorized((access) => getPets(access));
+    return runAuthorized(
+      (access) => getPets(access)
+    );
   }, [runAuthorized]);
 
-  // Registrar mascota
   const handleCreatePet = useCallback((petData) => {
     return runAuthorized(
       (access) => createPet(access, petData)
     );
   }, [runAuthorized]);
 
-  // Consultar mascota por UUID
   const handleGetPet = useCallback((petId) => {
     return runAuthorized(
       (access) => getPetById(access, petId)
     );
   }, [runAuthorized]);
 
-  // Actualizar mascota
   const handleUpdatePet = useCallback((petId, petData) => {
     return runAuthorized(
       (access) => updatePet(access, petId, petData)
     );
   }, [runAuthorized]);
+
+  // Enviar fotografía con JWT
+  const handleUploadPetPhoto = useCallback(
+    (petId, photoUri) => {
+      return runAuthorized(
+        (access) => uploadPetPhoto(access, petId, photoUri)
+      );
+    },
+    [runAuthorized]
+  );
 
   if (restoring) {
     return (
@@ -202,7 +213,6 @@ export default function App() {
             size="large"
             color={colors.primary}
           />
-
           <Text style={styles.message}>
             Verificando sesión...
           </Text>
@@ -272,6 +282,21 @@ export default function App() {
                     onCreatePet={handleCreatePet}
                     onGetPet={handleGetPet}
                     onUpdatePet={handleUpdatePet}
+                  />
+                )}
+              </Stack.Screen>
+
+              <Stack.Screen name="PetCamera">
+                {(props) => (
+                  <PetCameraScreen {...props} />
+                )}
+              </Stack.Screen>
+
+              <Stack.Screen name="PetPhotoPreview">
+                {(props) => (
+                  <PetPhotoPreviewScreen
+                    {...props}
+                    onUploadPetPhoto={handleUploadPetPhoto}
                   />
                 )}
               </Stack.Screen>

@@ -1,8 +1,10 @@
 
 import React, { useCallback, useState } from 'react';
+
 import {
   View,
   Text,
+  Image,
   Pressable,
   ScrollView,
   ActivityIndicator,
@@ -14,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { colors } from '../styles/colors';
+import { getPetPhotoUrl } from '../services/petPhotoService';
 
 function getSpeciesName(species) {
   if (species?.toLowerCase() === 'dog') return 'Perro';
@@ -103,6 +106,7 @@ export default function PetProfileScreen({
   const [error, setError] = useState('');
   const [retryCount, setRetryCount] = useState(0);
 
+  // Actualizar los datos al regresar al perfil
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -186,6 +190,8 @@ export default function PetProfileScreen({
     );
   }
 
+  const photoUrl = getPetPhotoUrl(pet.photo);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -212,11 +218,19 @@ export default function PetProfileScreen({
 
         <View style={styles.petCard}>
           <View style={styles.avatar}>
-            <Ionicons
-              name="paw"
-              size={43}
-              color={colors.primary}
-            />
+            {photoUrl ? (
+              <Image
+                source={{ uri: photoUrl }}
+                style={styles.petPhoto}
+                resizeMode="cover"
+              />
+            ) : (
+              <Ionicons
+                name="paw"
+                size={43}
+                color={colors.primary}
+              />
+            )}
           </View>
 
           <View style={styles.petInfo}>
@@ -235,6 +249,28 @@ export default function PetProfileScreen({
             </View>
           </View>
         </View>
+
+        <Pressable
+          style={styles.photoButton}
+          onPress={() =>
+            navigation.navigate('PetCamera', {
+              petId: pet.id,
+            })
+          }
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="camera-outline"
+            size={21}
+            color={colors.primaryDark}
+          />
+
+          <Text style={styles.photoButtonText}>
+            {photoUrl
+              ? 'Cambiar fotografía'
+              : 'Tomar fotografía'}
+          </Text>
+        </Pressable>
 
         <Text style={styles.sectionTitle}>
           Información general
@@ -414,7 +450,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 17,
     padding: 20,
-    marginBottom: 26,
+    marginBottom: 18,
   },
   avatar: {
     width: 84,
@@ -423,6 +459,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  petPhoto: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
   },
   petInfo: {
     flex: 1,
@@ -448,6 +490,21 @@ const styles = StyleSheet.create({
   petTagText: {
     color: colors.white,
     fontSize: 12,
+    fontWeight: '600',
+  },
+  photoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.lightTeal,
+    borderRadius: 10,
+    minHeight: 48,
+    marginBottom: 24,
+  },
+  photoButtonText: {
+    color: colors.primaryDark,
+    fontSize: 14,
     fontWeight: '600',
   },
   sectionTitle: {
