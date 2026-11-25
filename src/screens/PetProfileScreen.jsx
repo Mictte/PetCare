@@ -361,6 +361,27 @@ export default function PetProfileScreen({
         />
 
         <Pressable
+          style={styles.cardButton}
+          onPress={() =>
+            navigation.navigate('PetCard', {
+              petId: pet.id,
+            })
+          }
+          accessibilityRole="button"
+          accessibilityLabel="Ver carnet digital"
+        >
+          <Ionicons
+            name="qr-code-outline"
+            size={22}
+            color={colors.primaryDark}
+          />
+
+          <Text style={styles.cardButtonText}>
+            Carnet digital
+          </Text>
+        </Pressable>
+
+        <Pressable
           style={styles.editButton}
           onPress={() =>
             navigation.navigate('PetForm', {
@@ -582,4 +603,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
+
+  cardButton: {
+    backgroundColor: colors.lightTeal,
+    borderRadius: 10,
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    marginTop: 20,
+  },
+  cardButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primaryDark,
+  },
+
 });

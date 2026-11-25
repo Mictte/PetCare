@@ -119,7 +119,7 @@ export function createPet(accessToken, petData) {
   });
 }
 
-// Consultar una mascota por UUID
+// Consultar mascota por UUID
 export function getPetById(accessToken, petId) {
   return request(`/api/pets/${petId}/`, {
     method: 'GET',
@@ -129,7 +129,7 @@ export function getPetById(accessToken, petId) {
   });
 }
 
-// Editar información de una mascota
+// Editar información de mascota
 export function updatePet(accessToken, petId, petData) {
   return request(`/api/pets/${petId}/`, {
     method: 'PATCH',
@@ -137,5 +137,15 @@ export function updatePet(accessToken, petId, petData) {
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(petData),
+  });
+}
+
+// Obtener el identificador del carnet digital
+export function getPetCardToken(accessToken, petId) {
+  return request(`/api/pets/${petId}/carnet/`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 }

@@ -19,6 +19,7 @@ import PetFormScreen from './src/screens/PetFormScreen';
 import PetProfileScreen from './src/screens/PetProfileScreen';
 import PetCameraScreen from './src/screens/PetCameraScreen';
 import PetPhotoPreviewScreen from './src/screens/PetPhotoPreviewScreen';
+import PetCardScreen from './src/screens/PetCardScreen';
 
 import {
   loginUser,
@@ -28,6 +29,7 @@ import {
   createPet,
   getPetById,
   updatePet,
+  getPetCardToken,
 } from './src/services/petApi';
 
 import {
@@ -120,7 +122,7 @@ export default function App() {
     }
   }
 
-  // Renovar el token cuando sea necesario
+  // Ejecutar peticiones con JWT y renovar access
   const runAuthorized = useCallback(async (action) => {
     if (!session) {
       throw new Error('Debes iniciar sesión');
@@ -171,31 +173,35 @@ export default function App() {
     }
   }, [session]);
 
+  // Consultar lista de mascotas
   const handleGetPets = useCallback(() => {
     return runAuthorized(
       (access) => getPets(access)
     );
   }, [runAuthorized]);
 
+  // Registrar mascota
   const handleCreatePet = useCallback((petData) => {
     return runAuthorized(
       (access) => createPet(access, petData)
     );
   }, [runAuthorized]);
 
+  // Consultar mascota por UUID
   const handleGetPet = useCallback((petId) => {
     return runAuthorized(
       (access) => getPetById(access, petId)
     );
   }, [runAuthorized]);
 
+  // Editar mascota
   const handleUpdatePet = useCallback((petId, petData) => {
     return runAuthorized(
       (access) => updatePet(access, petId, petData)
     );
   }, [runAuthorized]);
 
-  // Enviar fotografía con JWT
+  // Guardar fotografía
   const handleUploadPetPhoto = useCallback(
     (petId, photoUri) => {
       return runAuthorized(
@@ -205,6 +211,13 @@ export default function App() {
     [runAuthorized]
   );
 
+  // Obtener identificador del carnet digital
+  const handleGetCardToken = useCallback((petId) => {
+    return runAuthorized(
+      (access) => getPetCardToken(access, petId)
+    );
+  }, [runAuthorized]);
+
   if (restoring) {
     return (
       <SafeAreaProvider>
@@ -213,6 +226,7 @@ export default function App() {
             size="large"
             color={colors.primary}
           />
+
           <Text style={styles.message}>
             Verificando sesión...
           </Text>
@@ -297,6 +311,16 @@ export default function App() {
                   <PetPhotoPreviewScreen
                     {...props}
                     onUploadPetPhoto={handleUploadPetPhoto}
+                  />
+                )}
+              </Stack.Screen>
+
+              <Stack.Screen name="PetCard">
+                {(props) => (
+                  <PetCardScreen
+                    {...props}
+                    onGetPet={handleGetPet}
+                    onGetCardToken={handleGetCardToken}
                   />
                 )}
               </Stack.Screen>
