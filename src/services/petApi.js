@@ -149,3 +149,34 @@ export function getPetCardToken(accessToken, petId) {
     },
   });
 }
+
+
+// Autorizar o desautorizar el contacto del propietario
+export function updateCardAccess(accessToken, petId, shareContact) {
+  return request(`/api/pets/${petId}/carnet/`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      share_contact: shareContact,
+    }),
+  });
+}
+
+// Invalidar el código QR y generar otro
+export function renewPetCard(accessToken, petId) {
+  return request(`/api/pets/${petId}/renovar-carnet/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+// Consultar información autorizada mediante el QR
+export function getVeterinaryPet(cardToken) {
+  return request(`/api/carnets/${cardToken}/`, {
+    method: 'GET',
+  });
+}

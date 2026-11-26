@@ -258,6 +258,21 @@ export default function PetListScreen({
       )}
 
       <Pressable
+        style={styles.vetButton}
+        onPress={() => navigation.navigate('VetAccess')}
+        accessibilityRole="button"
+      >
+        <Ionicons
+          name="qr-code-outline"
+          size={21}
+          color={colors.primaryDark}
+        />
+        <Text style={styles.vetButtonText}>
+          Escanear carnet
+        </Text>
+      </Pressable>
+
+      <Pressable
         style={styles.addButton}
         onPress={() => navigation.navigate('PetForm')}
         accessibilityRole="button"
@@ -423,4 +438,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
+
+
+  vetButton: {
+    backgroundColor: colors.lightTeal,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 9,
+    minHeight: 48,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  vetButtonText: {
+    color: colors.primaryDark,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+
 });

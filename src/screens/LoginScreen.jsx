@@ -226,6 +226,24 @@ export default function LoginScreen({
                 ¿No tienes cuenta? Regístrate
               </Text>
             </Pressable>
+
+            <Pressable
+              style={styles.vetButton}
+              onPress={() => navigation.navigate('VetAccess')}
+              disabled={loading}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="medical-outline"
+                size={21}
+                color={colors.primaryDark}
+              />
+
+              <Text style={styles.vetText}>
+                Acceso veterinario
+              </Text>
+            </Pressable>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -347,4 +365,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+
+
+  vetButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 9,
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: colors.lightTeal,
+    marginTop: 6,
+  },
+  vetText: {
+    color: colors.primaryDark,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+
 });

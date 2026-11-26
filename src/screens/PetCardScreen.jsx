@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  Switch,
   StyleSheet,
 } from 'react-native';
 
@@ -39,7 +40,6 @@ function formatDate(value) {
   if (!value) return 'No registrada';
 
   const parts = value.split('-');
-
   if (parts.length !== 3) return value;
 
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -86,15 +86,24 @@ export default function PetCardScreen({
   route,
   onGetPet,
   onGetCardToken,
+  onUpdateCardAccess,
+  onRenewPetCard,
 }) {
   const petId = route.params?.petId;
 
   const [pet, setPet] = useState(null);
   const [cardToken, setCardToken] = useState(null);
+  const [shareContact, setShareContact] = useState(false);
+
   const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const [error, setError] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+
   const [retryCount, setRetryCount] = useState(0);
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [confirmRenew, setConfirmRenew] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -127,6 +136,7 @@ export default function PetCardScreen({
           if (active) {
             setPet(petData);
             setCardToken(cardData.token);
+            setShareContact(cardData.share_contact === true);
           }
         } catch (err) {
           if (active) {
@@ -147,6 +157,51 @@ export default function PetCardScreen({
     }, [petId, onGetPet, onGetCardToken, retryCount])
   );
 
+  // Guardar la autorización del propietario
+  async function handleShareContact(value) {
+    if (savingSettings) return;
+
+    setSavingSettings(true);
+    setSettingsError('');
+
+    try {
+      const data = await onUpdateCardAccess(
+        petId,
+        value
+      );
+
+      setShareContact(data.share_contact === true);
+    } catch (err) {
+      setSettingsError(err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
+  // Invalidar el código anterior
+  async function handleRenewCard() {
+    if (savingSettings) return;
+
+    setSavingSettings(true);
+    setSettingsError('');
+
+    try {
+      const data = await onRenewPetCard(petId);
+
+      if (typeof data?.token !== 'string') {
+        throw new Error('No se recibió el nuevo código QR');
+      }
+
+      setCardToken(data.token);
+      setShareContact(data.share_contact === true);
+      setConfirmRenew(false);
+    } catch (err) {
+      setSettingsError(err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -157,7 +212,7 @@ export default function PetCardScreen({
           />
 
           <Text style={styles.message}>
-            Generando carnet digital...
+            Cargando carnet digital...
           </Text>
         </View>
       </SafeAreaView>
@@ -180,7 +235,9 @@ export default function PetCardScreen({
 
           <Pressable
             style={styles.retryButton}
-            onPress={() => setRetryCount((value) => value + 1)}
+            onPress={() =>
+              setRetryCount(value => value + 1)
+            }
           >
             <Text style={styles.retryText}>
               Reintentar
@@ -198,8 +255,6 @@ export default function PetCardScreen({
   }
 
   const photoUrl = getPetPhotoUrl(pet.photo);
-
-  // El QR solo contiene un identificador, no datos privados
   const qrValue = `PETCARE:1:${cardToken}`;
 
   return (
@@ -233,6 +288,7 @@ export default function PetCardScreen({
               size={25}
               color={colors.white}
             />
+
             <Text style={styles.cardBrand}>
               PetCare
             </Text>
@@ -355,12 +411,101 @@ export default function PetCardScreen({
               </Text>
 
               <Text style={styles.qrDescription}>
-                Este código permitirá consultar la
-                información autorizada desde PetCare
-                Veterinario.
+                Al escanear este código desde PetCare
+                Veterinario se mostrarán los datos autorizados.
               </Text>
             </View>
           </View>
+        </View>
+
+        <View style={styles.settingsCard}>
+          <Text style={styles.settingsTitle}>
+            Privacidad del carnet
+          </Text>
+
+          <View style={styles.privacyRow}>
+            <View style={styles.privacyInfo}>
+              <Text style={styles.privacyLabel}>
+                Compartir datos de contacto
+              </Text>
+
+              <Text style={styles.privacyDescription}>
+                Permitir mostrar mi nombre y teléfono
+                a quien escanee el QR.
+              </Text>
+            </View>
+
+            <Switch
+              value={shareContact}
+              onValueChange={handleShareContact}
+              disabled={savingSettings}
+              trackColor={{
+                false: colors.border,
+                true: colors.primary,
+              }}
+              thumbColor={colors.white}
+            />
+          </View>
+
+          <Pressable
+            style={styles.renewButton}
+            onPress={() => setConfirmRenew(true)}
+            disabled={savingSettings}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="refresh-outline"
+              size={20}
+              color={colors.primaryDark}
+            />
+
+            <Text style={styles.renewText}>
+              Renovar código QR
+            </Text>
+          </Pressable>
+
+          {confirmRenew && (
+            <View style={styles.confirmBox}>
+              <Text style={styles.confirmText}>
+                El código anterior dejará de funcionar.
+                ¿Deseas generar uno nuevo?
+              </Text>
+
+              <View style={styles.confirmActions}>
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={() => setConfirmRenew(false)}
+                  disabled={savingSettings}
+                >
+                  <Text style={styles.cancelText}>
+                    Cancelar
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.confirmButton}
+                  onPress={handleRenewCard}
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? (
+                    <ActivityIndicator
+                      color={colors.white}
+                    />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>
+                      Renovar
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+          {!!settingsError && (
+            <Text style={styles.errorText}>
+              {settingsError}
+            </Text>
+          )}
         </View>
 
         <View style={styles.notice}>
@@ -371,9 +516,9 @@ export default function PetCardScreen({
           />
 
           <Text style={styles.noticeText}>
-            Comparte este código solamente cuando sea
-            necesario. La consulta veterinaria se
-            habilitará en la siguiente etapa.
+            Cualquier persona que tenga una copia de este
+            QR vigente podría consultar la ficha autorizada.
+            Comparte el código solamente cuando sea necesario.
           </Text>
         </View>
       </ScrollView>
@@ -405,7 +550,9 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.error,
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 10,
   },
   retryButton: {
     backgroundColor: colors.lightTeal,
@@ -566,6 +713,90 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  settingsCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 18,
+    gap: 14,
+  },
+  settingsTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  privacyInfo: {
+    flex: 1,
+    gap: 5,
+  },
+  privacyLabel: {
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  privacyDescription: {
+    color: colors.secondaryText,
+    fontSize: 12,
+    lineHeight: 19,
+  },
+  renewButton: {
+    backgroundColor: colors.lightTeal,
+    minHeight: 49,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  renewText: {
+    color: colors.primaryDark,
+    fontWeight: '600',
+  },
+  confirmBox: {
+    padding: 13,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    gap: 12,
+  },
+  confirmText: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: colors.lightTeal,
+    padding: 13,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  cancelText: {
+    color: colors.primaryDark,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    padding: 13,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: colors.white,
+    fontWeight: '600',
   },
   notice: {
     flexDirection: 'row',

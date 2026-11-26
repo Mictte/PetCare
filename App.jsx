@@ -21,6 +21,10 @@ import PetCameraScreen from './src/screens/PetCameraScreen';
 import PetPhotoPreviewScreen from './src/screens/PetPhotoPreviewScreen';
 import PetCardScreen from './src/screens/PetCardScreen';
 
+import VetAccessScreen from './src/screens/VetAccessScreen';
+import VetScannerScreen from './src/screens/VetScannerScreen';
+import VetPetInfoScreen from './src/screens/VetPetInfoScreen';
+
 import {
   loginUser,
   registerUser,
@@ -30,6 +34,9 @@ import {
   getPetById,
   updatePet,
   getPetCardToken,
+  updateCardAccess,
+  renewPetCard,
+  getVeterinaryPet,
 } from './src/services/petApi';
 
 import {
@@ -97,7 +104,6 @@ export default function App() {
     restoreSession();
   }, [restoreSession]);
 
-  // Iniciar sesión
   async function handleLogin({ username, password }) {
     const tokens = await loginUser(username, password);
 
@@ -106,12 +112,10 @@ export default function App() {
     setRestoreError('');
   }
 
-  // Registrar usuario
   async function handleSignUp(userData) {
     return registerUser(userData);
   }
 
-  // Cerrar sesión
   async function handleLogout() {
     try {
       await clearSession();
@@ -122,7 +126,7 @@ export default function App() {
     }
   }
 
-  // Ejecutar peticiones con JWT y renovar access
+  // Peticiones protegidas y renovación JWT
   const runAuthorized = useCallback(async (action) => {
     if (!session) {
       throw new Error('Debes iniciar sesión');
@@ -173,35 +177,30 @@ export default function App() {
     }
   }, [session]);
 
-  // Consultar lista de mascotas
   const handleGetPets = useCallback(() => {
     return runAuthorized(
       (access) => getPets(access)
     );
   }, [runAuthorized]);
 
-  // Registrar mascota
   const handleCreatePet = useCallback((petData) => {
     return runAuthorized(
       (access) => createPet(access, petData)
     );
   }, [runAuthorized]);
 
-  // Consultar mascota por UUID
   const handleGetPet = useCallback((petId) => {
     return runAuthorized(
       (access) => getPetById(access, petId)
     );
   }, [runAuthorized]);
 
-  // Editar mascota
   const handleUpdatePet = useCallback((petId, petData) => {
     return runAuthorized(
       (access) => updatePet(access, petId, petData)
     );
   }, [runAuthorized]);
 
-  // Guardar fotografía
   const handleUploadPetPhoto = useCallback(
     (petId, photoUri) => {
       return runAuthorized(
@@ -211,10 +210,27 @@ export default function App() {
     [runAuthorized]
   );
 
-  // Obtener identificador del carnet digital
   const handleGetCardToken = useCallback((petId) => {
     return runAuthorized(
       (access) => getPetCardToken(access, petId)
+    );
+  }, [runAuthorized]);
+
+  // Configurar si se comparte el contacto
+  const handleUpdateCardAccess = useCallback(
+    (petId, shareContact) => {
+      return runAuthorized(
+        (access) =>
+          updateCardAccess(access, petId, shareContact)
+      );
+    },
+    [runAuthorized]
+  );
+
+  // Renovar identificador del carnet
+  const handleRenewPetCard = useCallback((petId) => {
+    return runAuthorized(
+      (access) => renewPetCard(access, petId)
     );
   }, [runAuthorized]);
 
@@ -226,7 +242,6 @@ export default function App() {
             size="large"
             color={colors.primary}
           />
-
           <Text style={styles.message}>
             Verificando sesión...
           </Text>
@@ -321,6 +336,27 @@ export default function App() {
                     {...props}
                     onGetPet={handleGetPet}
                     onGetCardToken={handleGetCardToken}
+                    onUpdateCardAccess={handleUpdateCardAccess}
+                    onRenewPetCard={handleRenewPetCard}
+                  />
+                )}
+              </Stack.Screen>
+
+              <Stack.Screen
+                name="VetAccess"
+                component={VetAccessScreen}
+              />
+
+              <Stack.Screen
+                name="VetScanner"
+                component={VetScannerScreen}
+              />
+
+              <Stack.Screen name="VetPetInfo">
+                {(props) => (
+                  <VetPetInfoScreen
+                    {...props}
+                    onGetVeterinaryPet={getVeterinaryPet}
                   />
                 )}
               </Stack.Screen>
@@ -341,6 +377,25 @@ export default function App() {
                   <SignUpScreen
                     {...props}
                     onSignUp={handleSignUp}
+                  />
+                )}
+              </Stack.Screen>
+
+              <Stack.Screen
+                name="VetAccess"
+                component={VetAccessScreen}
+              />
+
+              <Stack.Screen
+                name="VetScanner"
+                component={VetScannerScreen}
+              />
+
+              <Stack.Screen name="VetPetInfo">
+                {(props) => (
+                  <VetPetInfoScreen
+                    {...props}
+                    onGetVeterinaryPet={getVeterinaryPet}
                   />
                 )}
               </Stack.Screen>
